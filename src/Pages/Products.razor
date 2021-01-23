@@ -1,0 +1,120 @@
+﻿@page "/products"
+
+@using NorthwindPwa.Data
+@using NorthwindPwa.Models;
+@using Newtonsoft.Json;
+
+@using Blazor.IndexedDB.WebAssembly;
+
+@inject ProductsService service
+@inject HttpClient httpClient;
+@inject IIndexedDbFactory DbFactory
+
+@if (products.Count == 0)
+{
+<div class="text-center">
+    <div class="spinner-border" role="status">
+        <span class="sr-only">Loading...</span>
+    </div>
+</div>
+}
+else
+{
+<div class="wrapper">
+    <div style="position: sticky; top: 0; background-color: #0366d6">
+        <h5>This page doesn't work off-line</h5>
+        <h7>@InfoMessage</h7>
+    </div>
+    <div>
+        <table class="table" style="color:white; overflow:scroll">
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Name</th>
+                    <th>Unit Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var product in products)
+                        {
+                <tr>
+                    <td>@product.Id.ToString()</td>
+                    <td>@product.Name</td>
+                    <td>@product.UnitPrice.ToString()</td>
+                </tr>
+                        }
+            </tbody>
+        </table>
+    </div>
+    <div class="alert-dark shadow" style="position:sticky; bottom:0px; padding:4px;">
+        <button type="button" class="btn btn-info" @onclick="SaveProducts">Save data</button>
+    </div>
+</div>
+}
+<style>
+    .wrapper {
+        display: grid;
+        grid-template-rows: 4em auto 3em;
+        grid-gap: 6px;
+    }
+</style>
+
+@code {
+
+    #region
+
+    List<Product> products { get; set; } = new List<Product>();
+    private readonly string address = "https://northwind.now.sh/api/products";
+
+    private string InfoMessage { get; set; }
+
+    HttpRequestMessage request;
+    HttpResponseMessage response;
+
+    protected override async Task OnInitializedAsync()
+    {
+#if DEBUG
+        await Task.Delay(6000);
+#endif
+
+        request = new HttpRequestMessage()
+        {
+            RequestUri = new Uri(address),
+            Method = HttpMethod.Get
+        };
+        request.Headers.Add("mode", "no-cors");
+
+        try
+        {
+            response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            string json = await response.Content.ReadAsStringAsync();
+
+            products = JsonConvert.DeserializeObject<IEnumerable<Product>>(json).ToList();
+            InfoMessage = " Data loaded from the web service";
+        }
+        catch (NotSupportedException) { return; }
+        catch (HttpRequestException)
+        {
+            InfoMessage = "Application is off-line";
+            return;
+        }
+
+       // await SaveProducts();
+    }
+
+    protected async Task SaveProducts()
+    {
+        using (var db = await this.DbFactory.Create<NorthwindDb>())
+        {
+            if (db.Products.Count > 0) db.Products.Clear();
+
+            foreach (Product product in products)
+            {
+                db.Products.Add(product);
+            }
+            await db.SaveChanges();
+        }
+    }
+
+    #endregion
+}

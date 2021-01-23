@@ -1,33 +1,35 @@
 ﻿@page "/fetchdata"
-@inject HttpClient Http
 
-<h1>Weather forecast</h1>
+@using NorthwindPwa.Data
+@using NorthwindPwa.Models;
+@using Blazor.IndexedDB.WebAssembly;
 
-<p>This component demonstrates fetching data from the server.</p>
+@inject IIndexedDbFactory DbFactory
 
-@if (forecasts == null)
+<h5>This page works off-line</h5>
+<h7>Data loaded from the IndexedDB</h7>
+
+@if (products == null)
 {
     <p><em>Loading...</em></p>
 }
 else
 {
-    <table class="table" style="color:white;">
+    <table class="table" style="color:white">
         <thead>
             <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Unit Price</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var forecast in forecasts)
+            @foreach (var product in products)
             {
                 <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
+                    <td>@product.Id.ToString()</td>
+                    <td>@product.Name</td>
+                    <td>@product.UnitPrice.ToString()</td>
                 </tr>
             }
         </tbody>
@@ -35,21 +37,24 @@ else
 }
 
 @code {
-    private WeatherForecast[] forecasts;
+        #region
+        List<Product> products { get; set; } = new List<Product>();
 
-    protected override async Task OnInitializedAsync()
-    {
-        forecasts = await Http.GetFromJsonAsync<WeatherForecast[]>("sample-data/weather.json");
+        protected override async Task OnInitializedAsync()
+        {
+
+            using (NorthwindDb db = await this.DbFactory.Create<NorthwindDb>())
+            {
+#if DEBUG
+            await Task.Delay(6000);
+#endif
+            foreach (Product product in db.Products)
+            {
+                products.Add(product);
+            }
+        }
     }
 
-    public class WeatherForecast
-    {
-        public DateTime Date { get; set; }
 
-        public int TemperatureC { get; set; }
-
-        public string Summary { get; set; }
-
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-    }
+#endregion
 }

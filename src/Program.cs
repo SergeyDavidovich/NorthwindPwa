@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using NorthwindPwa.Data;
+using Blazor.IndexedDB.WebAssembly;
 
 namespace NorthwindPwa
 {
@@ -17,7 +19,11 @@ namespace NorthwindPwa
             var builder = WebAssemblyHostBuilder.CreateDefault(args);
             builder.RootComponents.Add<App>("#app");
 
-            builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+            builder.Services.AddSingleton(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+            builder.Services.AddSingleton<ProductsService>();
+
+            builder.Services.AddScoped<IIndexedDbFactory, IndexedDbFactory>();
 
             await builder.Build().RunAsync();
         }
