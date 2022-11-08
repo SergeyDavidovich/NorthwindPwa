@@ -22,7 +22,6 @@ namespace NorthwindPwa.Data
 
             var request = new HttpRequestMessage()
             {
-
                 RequestUri = new Uri(address),
                 Method = HttpMethod.Get
             };

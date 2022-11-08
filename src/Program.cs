@@ -22,6 +22,7 @@ namespace NorthwindPwa
             builder.Services.AddSingleton(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
             builder.Services.AddSingleton<ProductsService>();
+            builder.Services.AddSingleton<AppData>();
 
             builder.Services.AddScoped<IIndexedDbFactory, IndexedDbFactory>();
 
